@@ -25,4 +25,5 @@ public class Users {
 	private int is_verified;
 	private String designation;
 	private String joining_date;
+	public Users() {}
 }
