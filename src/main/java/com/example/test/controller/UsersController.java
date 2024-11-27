@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +18,8 @@ import com.example.test.exception.UserNotFoundException;
 import com.example.test.model.Users;
 import com.example.test.repository.UsersRepository;
 
+import jakarta.annotation.PostConstruct;
+
 
 @RestController
 public class UsersController {
@@ -23,6 +27,7 @@ public class UsersController {
 	    @Autowired
 	    private UsersRepository userRepository;
 
+	    
 	    @GetMapping("/getusers")
 	    public List<Users> getAllItems() {
 	        return userRepository.findAll();

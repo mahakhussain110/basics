@@ -2,44 +2,71 @@ package com.example.test.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.example.test.util.JwtAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
 	@Bean
+	public UserDetailsService userDetailsService() {
+	    return username -> {
+	        if ("mahak".equals(username)) {
+	            return User.withUsername("mahak")
+	                    .password(passwordEncoder().encode("admin123"))
+	                    .roles("USER")
+	                    .build();
+	        } else if ("admin".equals(username)) {
+	            return User.withUsername("admin")
+	                    .password(passwordEncoder().encode("admin123"))
+	                    .roles("ADMIN")
+	                    .build();
+	        } else {
+	            throw new UsernameNotFoundException("User not found");
+	        }
+	    };
+	}
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf().disable() // Disable CSRF for simplicity; enable in production if needed
+            .csrf().disable()
             .authorizeHttpRequests(authz -> authz
-            		  .requestMatchers("/getusers").hasRole("USER") // Accessible only by users with the USER role
-                      .requestMatchers("/saveuser").hasRole("ADMIN") // Accessible only by admins
-                      .requestMatchers("/{id}").hasAnyRole("USER", "ADMIN") // Allow access to GET, PUT, and DELETE by USER and ADMIN roles
-                .anyRequest().authenticated() // Secure other endpoints
+                .requestMatchers("/api/authenticate").permitAll() // Permit login endpoint
+                .anyRequest().authenticated() // Require authentication for all other endpoints
             )
-            .httpBasic(); // Use Basic Authentication
+            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class) // Add JWT filter
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)); // Stateless sessions
 
         return http.build();
     }
 
     @Bean
-    public UserDetailsService userDetailsService() {
-    	 UserDetails user = User.withUsername("user")
-                 .password("{noop}password") // NoOp encoder for demonstration only; use secure encoder in production
-                 .roles("USER")
-                 .build();
-         UserDetails admin = User.withUsername("admin")
-                 .password("{noop}password")
-                 .roles("ADMIN")
-                 .build();
-         return new InMemoryUserDetailsManager(user, admin);
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
+
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter();
     }
 }
+
 
